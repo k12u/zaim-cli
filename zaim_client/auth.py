@@ -8,6 +8,9 @@ import os
 import json
 import time
 import secrets
+import shutil
+import subprocess
+import sys
 import webbrowser
 import urllib.parse
 from pathlib import Path
@@ -204,11 +207,40 @@ class ZaimAuthManager:
     
     def open_browser(self, url: str) -> bool:
         """ブラウザでURLを開く"""
+        if sys.platform.startswith('linux'):
+            launchers = [
+                'xdg-open',
+                'wslview',
+                'sensible-browser',
+                'gnome-open',
+                'kde-open5',
+                'kde-open',
+            ]
+
+            for launcher in launchers:
+                launcher_path = shutil.which(launcher)
+                if not launcher_path:
+                    continue
+
+                try:
+                    subprocess.run(
+                        [launcher_path, url],
+                        check=True,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                    return True
+                except (subprocess.CalledProcessError, OSError):
+                    continue
+
         try:
-            webbrowser.open(url)
-            return True
+            opened = webbrowser.open(url, new=2)
+            if opened:
+                return True
         except Exception:
-            return False
+            pass
+
+        return False
     
     def login(self, port: Optional[int] = None, print_url: bool = False, timeout: int = 300) -> bool:
         """
